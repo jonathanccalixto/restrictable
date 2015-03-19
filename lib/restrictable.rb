@@ -1,0 +1,1 @@
+require 'devise/restrictable/restrictable'
