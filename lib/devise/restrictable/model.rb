@@ -1,8 +1,11 @@
 require 'devise/strategies/database_authenticatable'
+require 'devise/hooks/restrictable'
 
 module Devise
   module Models
     module Restrictable
+      WEEKDAYS = [:sunday, :monday, :tuesday, :wednesday, :thursday, :friday, :saturday]
+
       def active_for_authentication?
         active? && super
       end
@@ -15,40 +18,78 @@ module Devise
         !active?
       end
 
-      def checked_day?
-        checked_days.include? Date.today.wday
+      def inactive_message
+        inactive? ? :inactivated : super
       end
 
-      def in_work_time?
-        now = DateTime.now.strftime '%H:%M'
-        start_time = user_restriction.work_start_time.strftime '%H:%M'
-        end_time = user_restriction.end_time_work.strftime '%H:%M'
+      def connected?(request)
+        return false unless !!connected_at && !!connected_ip && respond_to?(:timeout_in)
 
-        start_time <= now && now <= end_time
+        timeout_in.ago <= connected_at && connected_ip != request.remote_ip
       end
 
-      def in_interval?
-        now = DateTime.now.strftime '%H:%M'
-        start_time = user_restriction.start_of_interval.strftime '%H:%M'
-        end_time = user_restriction.end_of_interval.strftime '%H:%M'
-
-        start_time <= now && now <= end_time
+      def disconnected?(*args)
+        !connected?(*args)
       end
+
+      def set_to_connected!(request)
+        update_column :connected_at, Time.now.utc
+        update_column :connected_ip, request.remote_ip
+        update_column :updated_at, Time.now.utc
+      end
+
+      def set_to_disconnected!
+        update_column :connected_at, nil
+        update_column :connected_ip, nil
+        update_column :updated_at, Time.now.utc
+      end
+
+      def connected_message
+        :already_connected
+      end
+
+      protected
 
       def checked_days
         days = []
 
-        %w(sunday monday tuesday wednesday thursday friday saturday).each_with_index do |method, wday|
-          if user_restriction.send method.to_sym
-            days.push wday
-          end
+        WEEKDAYS.each_with_index do |method, wday|
+          days << wday if send(:"#{method}?")
         end
 
         days
       end
 
-      def inactive_message
-        inactive? ? :inactivated : super
+      def checked_day?
+        return true if every_day?
+
+        checked_days.include? Date.today.wday
+      end
+
+      def in_work_time?
+        return false unless work_start_time && end_time_work
+
+        now        = I18n.l Time.now.utc, format: time_format
+        start_time = I18n.l self.work_start_time, format: time_format
+        end_time   = I18n.l self.end_time_work, format: time_format
+
+        start_time <= now && now <= end_time
+      end
+
+      def in_interval?
+        return false unless start_of_interval && end_of_interval
+
+        now        = I18n.l Time.now.utc, format: time_format
+        start_time = I18n.l self.start_of_interval, format: time_format
+        end_time   = I18n.l self.end_of_interval, format: time_format
+
+        start_time <= now && now <= end_time
+      end
+
+      private
+
+      def time_format
+        I18n.t "time.formats.time"
       end
     end
   end
