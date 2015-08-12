@@ -9,9 +9,9 @@ Gem::Specification.new do |s|
   s.version     = Restrictable::VERSION
   s.authors     = ["wmalheiros"]
   s.email       = ["wenderson.malheiros@gmail.com"]
-  s.homepage    = "TODO"
-  s.summary     = "TODO: Summary of Restrictable."
-  s.description = "TODO: Description of Restrictable."
+  s.homepage    = "https://github.com/wmalheiros/restrictable"
+  s.summary     = %q{Activate and inactivate a devise account}
+  s.description = %q{This is a simple, however wonderful devise extension to activate and inactivate users account.}
   s.license     = "MIT"
 
   s.files = Dir["{app,config,db,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.rdoc"]
