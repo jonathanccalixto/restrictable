@@ -23,6 +23,7 @@ module Devise
       end
 
       def connected?(request)
+        return false # Definindo temporariamente que todos estão desconectados
         return false unless !!connected_at && !!connected_ip && respond_to?(:timeout_in)
 
         timeout_in.ago <= connected_at && connected_ip != request.remote_ip
